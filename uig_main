@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sakib's Invoice Generator</title>
+<style>
+:root {
+  --ink: #0f2a43;
+  --ink2: #506b85;
+  --line: #d8e2ee;
+  --bg: #eef2f6;
+  --accent: #0a5b9e;
+  --accent-d: #084a80;
+  --gold: #d4a017;
+  --radius: 10px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+h1,h2,h3,h4 { margin: 0; font-weight: 750; }
+button { font: inherit; cursor: pointer; border: none; border-radius: 8px; padding: 8px 14px; background: #e8edf5; color: var(--ink); transition: .15s; }
+button:hover { filter: brightness(.96); }
+input, select, textarea {
+  font: inherit; width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 8px; background: #fff; color: var(--ink); outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10,91,158,.12); }
+label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--ink2); }
+
+/* ---------- Header ---------- */
+.app-header {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 26px;
+  padding: 0 20px; height: 58px; background: var(--ink); color: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.12);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .2px; }
+.brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px rgba(212,160,23,.25); }
+.brand small { font-weight: 500; opacity: .65; font-size: 11px; border: 1px solid rgba(255,255,255,.25); padding: 1px 7px; border-radius: 20px; }
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tab { background: transparent; color: rgba(255,255,255,.7); padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 7px; }
+.tab:hover { background: rgba(255,255,255,.09); color: #fff; }
+.tab.active { background: rgba(255,255,255,.16); color: #fff; }
+.count { background: rgba(255,255,255,.22); border-radius: 20px; padding: 0 7px; font-size: 11px; min-width: 18px; text-align: center; }
+
+/* ---------- Views ---------- */
+.view { display: none; padding: 20px; }
+.view.active { display: block; }
+.layout { display: grid; grid-template-columns: minmax(400px, 480px) 1fr; gap: 22px; align-items: start; max-width: 1560px; margin: 0 auto; }
+@media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+.card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .7px; color: var(--ink2); margin-bottom: 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.span2 { grid-column: span 2; }
+
+/* ---------- Items ---------- */
+.items-head, .item-row {
+  display: grid;
+  grid-template-columns: 84px 1fr 56px 100px 98px 28px;
+  gap: 6px; align-items: center;
+}
+.items-head {
+  font-size: 10.5px; font-weight: 700; color: var(--ink2);
+  text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 6px; padding: 0 2px;
+}
+.item-row { margin-bottom: 6px; }
+.item-row input { padding: 7px 8px; font-size: 13px; }
+.i-total { text-align: right; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.i-del { background: transparent; color: #b3bccb; padding: 4px; border-radius: 6px; font-size: 17px; line-height: 1; }
+.i-del:hover { background: #fdecea; color: #d93025; }
+
+.btn.primary { background: var(--accent); color: #fff; font-weight: 600; width: 100%; padding: 11px; }
+.btn.primary:hover { background: var(--accent-d); }
+.btn.ghost { background: #fff; border: 1px dashed var(--line); color: var(--ink2); width: 100%; margin-top: 4px; }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+
+/* ---------- Paper (A4) ---------- */
+.paper-toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 10px; max-width: 820px; margin-left: auto; margin-right: auto; }
+.paper-toolbar button { background: var(--ink); color: #fff; }
+.paper {
+  background: #fff; width: 100%; max-width: 820px; margin: 0 auto;
+  padding: 38px 44px; border-radius: 6px;
+  box-shadow: 0 6px 26px rgba(15,42,67,.13);
+  color: #1b2431; font-size: 13px;
+}
+
+/* --- header with logos --- */
+.p-head {
+  display: flex; align-items: center; gap: 18px;
+  padding-bottom: 0px; border-bottom: 3px solid var(--ink);
+}
+.p-head-text { flex: 1; text-align: center; min-width: 0; }
+.p-head-text h1 { font-size: 16px; letter-spacing: 0px; color: var(--ink); margin: 0 0 7px; }
+.p-head-text p { margin: 2px 0; font-size: 12px; color: #4a5a72; }
+.p-logo-slot {
+  flex: none; width: 140px; height: 150px;
+  display: flex; align-items: center; justify-content: center;
+}
+.p-logo-slot img { max-width: 140px; max-height: 150px; object-fit: contain; }
+.p-logo-slot.empty { visibility: hidden; }
+
+.p-title { font-size: 21px; font-weight: 700; text-align: center; margin: 10px 0 16px; letter-spacing: 1px; color: var(--ink); }
+
+.p-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 16px; }
+.p-meta span { display: block; }
+.p-meta strong { color: var(--ink); }
+
+.p-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px; font-size: 12px; }
+.p-parties .box h4 { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.1px; color: var(--ink2); margin: 0 0 6px; }
+.p-parties .box p { margin: 2px 0; line-height: 1.55; color: #34495e; }
+.p-parties .box p strong { color: var(--ink); }
+
+table.p-items { width: 100%; border-collapse: collapse; margin: 4px 0 12px; font-size: 12px; }
+table.p-items thead th {
+  background: var(--ink); color: #fff; padding: 8px 10px; text-align: left;
+  font-weight: 600; font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase;
+}
+table.p-items thead th.r { text-align: right; }
+table.p-items thead th.c { text-align: center; width: 36px; }
+table.p-items tbody td { padding: 8px 10px; border-bottom: 1px solid #edf1f7; vertical-align: top; }
+table.p-items tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+table.p-items tbody td.c { text-align: center; color: var(--ink2); }
+table.p-items tbody tr:nth-child(even) { background: #fafbfd; }
+
+/* Summary Rows in Table */
+table.p-items tbody tr.summary-row td { background: #f4f7fb; font-weight: 600; border-bottom: none; padding-top: 6px; padding-bottom: 6px; }
+table.p-items tbody tr.discount-row td { background: #f4f7fb; font-weight: 600; border-bottom: none; color: #b3261e; padding-top: 2px; padding-bottom: 6px; }
+table.p-items tbody tr.grand-total-row td { background: #f4f7fb; font-weight: 800; font-size: 14px; border-top: 2px solid var(--ink); border-bottom: none; padding-top: 10px; padding-bottom: 10px; }
+
+.p-inword { font-size: 13px; margin: 10px 0 12px; padding: 8px 12px; background: #f4f7fb; border-left: 3px solid var(--accent); }
+.p-inword strong { color: var(--ink2); font-weight: 600; }
+
+.p-remarks {
+  font-size: 12px; margin: 0 0 16px; padding: 8px 12px;
+  background: #fff8e6; border-left: 3px solid var(--gold);
+  color: #5a4a1f; white-space: pre-line;
+}
+.p-remarks strong { color: var(--ink); display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 3px; }
+
+.p-terms { font-size: 12px; margin: 12px 0 24px; }
+.p-terms h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .9px; color: var(--ink); margin: 0 0 6px; }
+.p-terms ul { margin: 0; padding-left: 18px; color: #34495e; }
+.p-terms li { margin: 2px 0; line-height: 1.6; }
+
+.p-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 40px; }
+.p-sign .sig { border-top: 1px solid #9aa8bb; padding-top: 6px; font-size: 12px; color: var(--ink2); }
+.p-sign .sig strong { display: block; color: var(--ink); font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .9px; }
+.p-sign .sig p { margin: 2px 0; }
+
+/* --- Footer Logos --- */
+.p-footer {
+  margin-top: 40px;
+  padding-top: 15px;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+  page-break-inside: avoid;
+}
+.p-footer img {
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+/* ---------- Tables / lists ---------- */
+.panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; max-width: 1240px; margin: 0 auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; color: var(--ink2); padding: 8px 10px; border-bottom: 2px solid var(--line); }
+table.data td { padding: 9px 10px; border-bottom: 1px solid #f1f4f9; }
+table.data td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+table.data tr:hover td { background: #fafbfd; }
+.empty { text-align: center; color: #9aa8bb; padding: 34px 0 !important; }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+.actions { display: flex; gap: 5px; justify-content: flex-end; }
+.actions button { background: #eef2f8; font-size: 12px; padding: 5px 10px; }
+.actions button[data-act="del"]:hover, .actions button[data-del]:hover { background: #fdecea; color: #d93025; }
+code { background: #eef2f8; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: var(--accent); }
+
+/* ---------- Logo settings ---------- */
+.logo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.logo-box {
+  border: 1px dashed var(--line); border-radius: 8px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.logo-box-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: var(--ink2); }
+.logo-preview-wrap {
+  height: 90px; background: #f7f9fc; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.logo-preview-wrap img { max-width: 100%; max-height: 86px; object-fit: contain; }
+.logo-preview-wrap .ph { color: #b3bccb; font-size: 11px; }
+.logo-box input[type=file] { font-size: 11px; padding: 5px 8px; }
+.logo-box button { font-size: 11px; padding: 4px 9px; background: #fdecea; color: #b3261e; align-self: flex-start; }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 10px; font-weight: 600;
+  box-shadow: 0 8px 26px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: .25s; z-index: 100;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- Print ---------- */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: #fff; }
+  .app-header, .form-panel, .paper-toolbar, .toast, .no-print { display: none !important; }
+  .view { display: none !important; padding: 0; }
+  #view-new { display: block !important; }
+  .layout { display: block; max-width: none; }
+  .paper { box-shadow: none; padding: 0; max-width: none; width: 100%; }
+  .p-logo-slot img { max-height: 70px; }
+  table.p-items tbody tr { page-break-inside: avoid; }
+  .p-sign { page-break-inside: avoid; }
+  .p-footer { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand"><span class="dot"></span> Make your invoice <small>BDT ৳</small></div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="new">New Invoice</button>
+    <button class="tab" data-view="history">History <span class="count" id="histCount">0</span></button>
+    <button class="tab" data-view="products">Stock <span class="count" id="prodCount">0</span></button>
+    <button class="tab" data-view="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============ NEW INVOICE ============ -->
+  <section id="view-new" class="view active">
+    <div class="layout">
+
+      <!-- FORM -->
+      <div class="form-panel">
+        <div class="card">
+          <h3>Invoice details</h3>
+          <div class="grid2">
+            <label>Date <input id="invDate" type="date"></label>
+            <label>PO No. <input id="poNo" placeholder="DRIS/PO/2026/001"></label>
+            <label>Internal Ref <input id="invNo" readonly style="background:#f5f7fa"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Customer / To</h3>
+          <div class="grid2">
+            <label class="span2">Customer Name <input id="cName"></label>
+            <label class="span2">Address <input id="cAddress"></label>
+            <label class="span2">Mobile No <input id="cMobile"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Items</h3>
+          <div class="items-head">
+            <span>Code</span>
+            <span>Product Name</span>
+            <span>Qty</span>
+            <span>Unit Price</span>
+            <span style="text-align:right">Total</span>
+            <span></span>
+          </div>
+          <div id="items"></div>
+          <button id="btnAddItem" class="btn ghost">+ Add item</button>
+        </div>
+
+        <div class="card">
+          <h3>Discount</h3>
+          <div class="grid2">
+            <label>Discount Type
+              <select id="discountType">
+                <option value="flat">Flat Amount (৳)</option>
+                <option value="percent">Percentage (%)</option>
+              </select>
+            </label>
+            <label>Discount Value <input id="discountValue" type="number" min="0" step="any" value="0"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Remarks</h3>
+          <label class="span2" style="gap:5px">
+            Additional remarks / special instructions (optional)
+            <textarea id="remarks" rows="2" placeholder="e.g. Delivery to site on 16/10/2026 before 5 PM"></textarea>
+          </label>
+        </div>
+
+        <button id="btnSave" class="btn primary">Save Invoice</button>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-panel">
+        <div class="paper-toolbar no-print">
+          <button id="btnPrint">🖨 Print / Save as PDF</button>
+          <button id="btnNew">＋ New Blank</button>
+        </div>
+        <div class="paper" id="paper"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section id="view-history" class="view">
+    <div class="panel">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Ref</th><th>Date</th><th>PO No.</th><th>Customer</th>
+            <th style="text-align:right">Total</th><th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ PRODUCTS ============ -->
+  <section id="view-products" class="view">
+    <div class="panel" style="margin-bottom:14px">
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin-bottom:10px">Add product</h3>
+      <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 110px 110px auto;gap:10px;align-items:end">
+        <label>Name <input id="npName" placeholder="Product name"></label>
+        <label>Category <input id="npCat" placeholder="Robot / Kit / Equipment"></label>
+        <label>Unit <input id="npUnit" placeholder="pcs" value="pcs"></label>
+        <label>Price ৳ <input id="npPrice" type="number" min="0" step="any" value="0"></label>
+        <label>Code <input id="npCode" placeholder="auto" style="background:#f5f7fa"></label>
+        <button id="btnAddProduct" class="btn sm" style="background:var(--accent);color:#fff;height:38px">Add</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px">
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin-bottom:8px">Bulk import</h3>
+      <p style="color:var(--ink2);font-size:12px;margin:0 0 10px">
+        One product per line — <code>Name | Category | Price | Unit</code>. Codes are auto-generated as <code>PREFIX-001</code>.
+      </p>
+      <textarea id="bulkText" rows="4" placeholder="Cadebot Delivery Robot | Robot | 0 | pcs&#10;Ugot Basic Kit | Kit | 0 | pcs"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="btnBulk" class="btn sm" style="background:var(--accent);color:#fff">Import products</button>
+        <button id="btnClearProducts" class="btn sm">Clear all products</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px">
+        <input id="prodSearch" placeholder="Search products by name, code or category…" style="max-width:420px">
+        <span style="color:var(--ink2);font-size:12px">Click <strong>Add to invoice</strong> to append a product to the current invoice.</span>
+      </div>
+      <table class="data">
+        <thead><tr><th>Code</th><th>Product Name</th><th>Category</th><th>Unit</th><th style="text-align:right">Default Price</th><th style="text-align:right">Action</th></tr></thead>
+        <tbody id="productsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="view-settings" class="view">
+    <div class="panel">
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin-bottom:12px">Logos (shown in invoice header & footer)</h3>
+      <div class="logo-grid" style="margin-bottom:22px">
+        <div class="logo-box">
+          <div class="logo-box-head">
+            <span>Left logo (main company)</span>
+            <button type="button" id="btnRemoveLogo1">Remove</button>
+          </div>
+          <div class="logo-preview-wrap" id="logo1Preview"><span class="ph">No logo</span></div>
+          <input type="file" id="logo1File" accept="image/*">
+        </div>
+        <div class="logo-box">
+          <div class="logo-box-head">
+            <span>Right logo (partner / sister concern)</span>
+            <button type="button" id="btnRemoveLogo2">Remove</button>
+          </div>
+          <div class="logo-preview-wrap" id="logo2Preview"><span class="ph">No logo</span></div>
+          <input type="file" id="logo2File" accept="image/*">
+        </div>
+      </div>
+      
+      <!-- Footer Logo Box -->
+      <div class="logo-box" style="margin-bottom:22px;">
+        <div class="logo-box-head">
+          <span>Footer Logos (Partner Strip)</span>
+          <button type="button" id="btnRemoveLogoFooter">Remove</button>
+        </div>
+        <div class="logo-preview-wrap" id="logoFooterPreview" style="height: 80px;"><span class="ph">No footer logos</span></div>
+        <input type="file" id="logoFooterFile" accept="image/*">
+        <span style="font-size: 11px; color: #506b85; margin-top: 4px;">Upload the strip of partner logos (HANS LASER, ABB, etc.) to display at the bottom of the invoice.</span>
+      </div>
+
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin-bottom:12px">Company header (printed on invoice)</h3>
+      <div class="grid2">
+        <label class="span2">Company name <input id="sName"></label>
+        <label class="span2">Address line <input id="sAddress"></label>
+        <label>Email <input id="sEmail"></label>
+        <label>Phone <input id="sPhone"></label>
+        <label class="span2">Websites (use | between) <input id="sWeb"></label>
+      </div>
+
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin:22px 0 12px">From / Seller details</h3>
+      <div class="grid2">
+        <label class="span2">From company <input id="sFrom"></label>
+        <label class="span2">From address <input id="sFromAddr"></label>
+        <label>Seller name <input id="sSeller"></label>
+        <label>Seller phone <input id="sSellerPhone"></label>
+      </div>
+
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin:22px 0 12px">Terms &amp; Conditions</h3>
+      <label class="span2" style="margin-bottom:10px">One term per line (rendered as bullet points)
+        <textarea id="sTerms" rows="6"></textarea>
+      </label>
+
+      <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink2);margin:22px 0 12px">Numbering</h3>
+      <div class="grid2">
+        <label>Invoice prefix <input id="sPrefix" placeholder="INV"></label>
+        <label>Next invoice number <input id="sNextNo" type="number" min="1"></label>
+        <label>PO prefix <input id="sPoPrefix" placeholder="DRIS/PO"></label>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+        <button id="btnSaveSettings" class="btn" style="background:var(--accent);color:#fff">Save settings</button>
+        <button id="btnResetStock" class="btn sm">Restore default stock list</button>
+        <button id="btnExport" class="btn sm">Export backup (.json)</button>
+        <button id="btnImport" class="btn sm">Import backup</button>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<datalist id="productList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Daffodil Robotics — Invoice Generator
+   Single-file browser app. Storage: localStorage.
+   ========================================================= */
+
+const STORAGE_KEY = 'daffodil_invoicegen_v2';
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const nf = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = n => nf.format(Number(n) || 0);
+const moneySym = n => '৳' + nf.format(Number(n) || 0);
+const fmtQty = q => Number(q || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const uid = () => 'inv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* ---------- amount in words (BD lakh/crore) ---------- */
+const ONES = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve',
+  'Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const TENS = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function two(n){ return n < 20 ? ONES[n] : TENS[Math.floor(n/10)] + (n % 10 ? ' ' + ONES[n % 10] : ''); }
+function three(n){
+  const h = Math.floor(n/100), r = n % 100;
+  let out = h ? ONES[h] + ' Hundred' : '';
+  if (r) out += (out ? ' ' : '') + two(r);
+  return out;
+}
+function intToWords(n){
+  if (n === 0) return 'Zero';
+  const parts = [];
+  const crore = Math.floor(n / 10000000); n %= 10000000;
+  const lakh  = Math.floor(n / 100000);   n %= 100000;
+  const thou  = Math.floor(n / 1000);     n %= 1000;
+  if (crore) parts.push(intToWords(crore) + ' Crore');
+  if (lakh)  parts.push(two(lakh) + ' Lakh');
+  if (thou)  parts.push(two(thou) + ' Thousand');
+  if (n)     parts.push(three(n));
+  return parts.join(' ');
+}
+function amountInWords(amount){
+  const neg = amount < 0;
+  amount = Math.abs(amount);
+  let taka = Math.floor(amount + 1e-9);
+  let paisa = Math.round((amount - taka) * 100);
+  if (paisa === 100) { taka++; paisa = 0; }
+  let out = intToWords(taka) + ' Taka';
+  if (paisa) out += ' and ' + two(paisa) + ' Paisa';
+  return (neg ? 'Minus ' : '') + out + ' only';
+}
+
+/* ---------- stock list (from Robotics Stock.xlsx) ---------- */
+const STOCK_SEED = [
+  ['Cadebot Delivery Robot', 'Robot'],
+  ['Cadebot Delivery Robot Charger', 'Accessory'],
+  ['Co2 Laser', 'Equipment'],
+  ['Conveyor Belt', 'Equipment'],
+  ['Ugot Basic Kit', 'Kit'],
+  ['Yanshee', 'Robot'],
+  ['Ai Super Engineer Kit', 'Kit'],
+  ['Ai Super Action Kit', 'Kit'],
+  ['Ai Transformer Workshop Kit', 'Kit'],
+  ['Space Exploratioin Kit', 'Kit'],
+  ['Ai City Guardian Kit', 'Kit'],
+  ['Ai Magic Woerld Kidt', 'Kit'],
+  ['Ai Fantasy Zoo Kit', 'Kit'],
+  ['Ai Amusement Park Kit', 'Kit'],
+  ['Ai Future Community Kit', 'Kit'],
+  ['Gear Moto Kit', 'Kit'],
+  ['Planet Action Map Kit', 'Kit'],
+  ['City Guardian Map Kit', 'Kit'],
+  ['Space Exploratioin Profs Kit', 'Kit'],
+  ['City Guardian Profs Kit', 'Kit'],
+  ['Planet Action Profs Kit', 'Kit'],
+  ['Venus Kit', 'Kit'],
+  ['Super Action Profs Kit', 'Kit'],
+  ['Bluetooth Controller', 'Accessory'],
+  ['Pool Cleaner', 'Robot'],
+  ['Vacuum Robot P30', 'Robot'],
+  ['Vacuum Robo P20', 'Robot']
+];
+
+const CATEGORY_PREFIX = { Robot: 'ROB', Kit: 'KIT', Equipment: 'EQP', Accessory: 'ACC' };
+
+function categoryPrefix(cat){
+  if (CATEGORY_PREFIX[cat]) return CATEGORY_PREFIX[cat];
+  const letters = String(cat || 'GEN').replace(/[^A-Za-z]/g, '').toUpperCase();
+  return (letters.slice(0, 3) || 'GEN').padEnd(3, 'X');
+}
+
+function buildSeedProducts(){
+  const counters = {};
+  return STOCK_SEED.map(([name, category]) => {
+    const p = categoryPrefix(category);
+    counters[p] = (counters[p] || 0) + 1;
+    return { code: p + '-' + String(counters[p]).padStart(3, '0'), name, category, unit: 'pcs', price: 0 };
+  });
+}
+
+/* ---------- default database ---------- */
+const DEFAULT_DB = {
+  settings: {
+    name: 'DAFFODIL ROBOTICS AND INDUSTRIAL SOLUTION',
+    address: 'shobhanbag, Mirpur Road, Daffodil Plaza, Dhaka',
+    email: 'bd.robotics@daffodil-bd.com',
+    phone: '+8801713493027',
+    web: 'www.daffodilrobotics.com | www.daffodil.family',
+    from: 'Daffodil Computers Ltd',
+    fromAddr: '4/2 Shobhanbag, Mirpur Road, Daffodil Plaza',
+    seller: 'Maydul Islam',
+    sellerPhone: '+8801713493027',
+    terms: [
+      'Validity: 30 days from the issue date',
+      'Payment: 100% in advance',
+      'Delivery: Within a day',
+      'Warranty: 12 months from installation (excluding physical damage)',
+      'Installation & Training: Free of cost',
+      'Service: 1 Years'
+    ].join('\n'),
+    logo1: '',
+    logo2: '',
+    logoFooter: '',
+    prefix: 'INV',
+    nextNo: 1,
+    poPrefix: 'DRIS/PO'
+  },
+  products: buildSeedProducts(),
+  invoices: []
+};
+
+/* ---------- load / persist ---------- */
+function loadDB(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('daffodil_invoicegen_v1');
+    if (raw){
+      const parsed = JSON.parse(raw);
+      return {
+        settings: { ...DEFAULT_DB.settings, ...(parsed.settings || {}) },
+        products: parsed.products || [],
+        invoices: parsed.invoices || []
+      };
+    }
+  } catch(e){ console.warn('Load failed', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_DB));
+}
+let db = loadDB();
+let currentId = null;
+
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); }
+
+/* ---------- numbering ---------- */
+function nextInvoiceNo(){
+  return (db.settings.prefix || 'INV') + '-' + String(db.settings.nextNo || 1).padStart(4, '0');
+}
+function nextPONo(){
+  const year = new Date().getFullYear();
+  const prefix = (db.settings.poPrefix || 'DRIS/PO').replace(/\/+$/, '');
+  let max = 0;
+  db.invoices.forEach(inv => {
+    const m = (inv.poNo || '').match(new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(\\d{4})/(\\d+)'));
+    if (m && Number(m[1]) === year) max = Math.max(max, Number(m[2]));
+  });
+  return prefix + '/' + year + '/' + String(max + 1).padStart(3, '0');
+}
+function nextProductCode(category, list){
+  const p = categoryPrefix(category);
+  let max = 0;
+  list.forEach(x => {
+    if (x.code && x.code.startsWith(p + '-')){
+      const n = parseInt(x.code.slice(p.length + 1), 10);
+      if (n > max) max = n;
+    }
+  });
+  return p + '-' + String(max + 1).padStart(3, '0');
+}
+
+/* =========================================================
+   DRAFT READ
+   ========================================================= */
+function readDraft(){
+  const items = [...document.querySelectorAll('#items .item-row')].map(row => ({
+    code:  row.querySelector('.i-code').value.trim(),
+    name:  row.querySelector('.i-name').value.trim(),
+    qty:   Number(row.querySelector('.i-qty').value) || 0,
+    price: Number(row.querySelector('.i-price').value) || 0
+  })).filter(it => it.code || it.name || it.qty || it.price);
+
+  const subtotal = items.reduce((s, it) => s + it.qty * it.price, 0);
+
+  const dType = document.getElementById('discountType').value;
+  const dValue = Number(document.getElementById('discountValue').value) || 0;
+  
+  let discountAmount = 0;
+  if (dType === 'percent') {
+    discountAmount = subtotal * (dValue / 100);
+  } else {
+    discountAmount = dValue;
+  }
+  
+  // Prevent discount from exceeding subtotal or being negative
+  discountAmount = Math.max(0, Math.min(discountAmount, subtotal));
+  
+  const total = subtotal - discountAmount;
+
+  return {
+    id: currentId,
+    no: document.getElementById('invNo').value,
+    poNo: document.getElementById('poNo').value.trim(),
+    date: document.getElementById('invDate').value || todayISO(),
+    customer: {
+      name:   document.getElementById('cName').value.trim(),
+      address:document.getElementById('cAddress').value.trim(),
+      mobile: document.getElementById('cMobile').value.trim()
+    },
+    items,
+    subtotal,
+    discountType: dType,
+    discountValue: dValue,
+    discountAmount,
+    total,
+    remarks: document.getElementById('remarks').value.trim()
+  };
+}
+
+/* =========================================================
+   PAPER RENDER
+   ========================================================= */
+function renderPaper(inv){
+  const s = db.settings;
+  const terms = (s.terms || '').split(/\r?\n/).map(t => t.trim()).filter(Boolean);
+
+  const logoSlot = (src, alt) => src
+    ? `<div class="p-logo-slot"><img src="${esc(src)}" alt="${esc(alt)}"></div>`
+    : `<div class="p-logo-slot empty"></div>`;
+
+  const rows = inv.items.length
+    ? inv.items.map((it, i) => `
+        <tr>
+          <td class="c">${i + 1}</td>
+          <td>${esc(it.name) || '—'}</td>
+          <td class="c">${fmtQty(it.qty)}</td>
+          <td class="r">${money(it.price)}</td>
+          <td class="r">${money(it.qty * it.price)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:#9aa8bb;padding:24px">No items added yet</td></tr>`;
+
+  document.getElementById('paper').innerHTML = `
+    <header class="p-head">
+      ${logoSlot(s.logo1, 'Company logo')}
+      <div class="p-head-text">
+        <h1>${esc(s.name)}</h1>
+        <p>${esc(s.address)}</p>
+        <p>${esc(s.email)} | ${esc(s.phone)}</p>
+        <p>${esc(s.web)}</p>
+      </div>
+      ${logoSlot(s.logo2, 'Partner logo')}
+    </header>
+
+    <div class="p-title">Bill/Invoice</div>
+
+    <div class="p-meta">
+      <span>Date: <strong>${esc(inv.date)}</strong></span>
+      <span>PO No.: <strong>${esc(inv.poNo) || '—'}</strong></span>
+    </div>
+
+    <div class="p-parties">
+      <div class="box">
+        <h4>From</h4>
+        <p><strong>${esc(s.from)}</strong><br>${esc(s.fromAddr)}</p>
+        ${s.seller ? `<p>Contact: ${esc(s.seller)}${s.sellerPhone ? ' &nbsp; phone: ' + esc(s.sellerPhone) : ''}</p>` : ''}
+      </div>
+      <div class="box">
+        <h4>To</h4>
+        <p><strong>${esc(inv.customer.name) || '—'}</strong>
+          ${inv.customer.address ? '<br>Address: ' + esc(inv.customer.address) : ''}
+          ${inv.customer.mobile ? '<br>Mobile No: ' + esc(inv.customer.mobile) : ''}</p>
+      </div>
+    </div>
+
+    <table class="p-items">
+      <thead>
+        <tr>
+          <th class="c">S/N</th>
+          <th>Product Name</th>
+          <th class="c">Qty</th>
+          <th class="r">Unit price</th>
+          <th class="r">Total price</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="summary-row">
+          <td colspan="4" style="text-align:right; padding-top: 10px;">Subtotal</td>
+          <td class="r" style="padding-top: 10px;">${money(inv.subtotal)}</td>
+        </tr>
+        ${inv.discountAmount > 0 ? `
+        <tr class="discount-row">
+          <td colspan="4" style="text-align:right;">Discount ${inv.discountType === 'percent' ? `(${inv.discountValue}%)` : ''}</td>
+          <td class="r">- ${money(inv.discountAmount)}</td>
+        </tr>` : ''}
+        <tr class="grand-total-row">
+          <td colspan="4" style="text-align:right;">Grand Total</td>
+          <td class="r">${money(inv.total)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="p-inword"><strong>In Word:</strong> ${esc(amountInWords(inv.total))}</div>
+
+    ${inv.remarks ? `<div class="p-remarks"><strong>Remarks</strong>${esc(inv.remarks)}</div>` : ''}
+
+    <div class="p-terms">
+      <h4>Terms &amp; Conditions</h4>
+      <ul>${terms.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+
+    <div class="p-sign">
+      <div class="sig">
+        <strong>Seller</strong>
+        <p>Name: ${esc(s.seller)}</p>
+        <p>Signature:</p>
+      </div>
+      <div class="sig">
+        <strong>Customer</strong>
+        <p>Name: ${esc(inv.customer.name) || '_________________'}</p>
+        <p>Signature &amp; Date:</p>
+      </div>
+    </div>
+
+    ${s.logoFooter ? `<div class="p-footer" style="font-weight: 700; text-align: center; margin: 10px 0 16px; letter-spacing: 1px; color: var(--ink);">Our Partners  <img src="${esc(s.logoFooter)}" alt="Partner Logos"></div>` : ''}
+  `;
+}
+
+function recalc(){
+  document.querySelectorAll('#items .item-row').forEach(row => {
+    const q = Number(row.querySelector('.i-qty').value) || 0;
+    const p = Number(row.querySelector('.i-price').value) || 0;
+    row.querySelector('.i-total').textContent = moneySym(q * p);
+  });
+  renderPaper(readDraft());
+}
+
+/* =========================================================
+   ITEM ROWS
+   ========================================================= */
+function addItemRow(item = { code:'', name:'', qty:1, price:0 }){
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <input class="i-code"  list="productList" placeholder="Code" value="${esc(item.code)}">
+    <input class="i-name"  placeholder="Product name" value="${esc(item.name)}">
+    <input class="i-qty"   type="number" min="0" step="any" value="${item.qty}">
+    <input class="i-price" type="number" min="0" step="any" value="${item.price}">
+    <span class="i-total">৳0.00</span>
+    <button class="i-del" title="Remove">×</button>
+  `;
+  row.querySelector('.i-del').addEventListener('click', () => {
+    row.remove();
+    if (!document.querySelector('#items .item-row')) addItemRow();
+    recalc();
+  });
+  document.getElementById('items').appendChild(row);
+  recalc();
+}
+
+function refreshProductDatalist(){
+  document.getElementById('productList').innerHTML = db.products
+    .map(p => `<option value="${esc(p.code)}">${esc(p.name)}${p.price ? ' — ৳' + money(p.price) : ''}</option>`)
+    .join('');
+}
+
+/* =========================================================
+   SAVE / LOAD
+   ========================================================= */
+function saveInvoice(){
+  const inv = readDraft();
+  if (!inv.customer.name && inv.items.length === 0){
+    toast('Add a customer name or at least one item first.');
+    return;
+  }
+  if (currentId){
+    const i = db.invoices.findIndex(x => x.id === currentId);
+    if (i > -1) db.invoices[i] = { ...inv, id: currentId, createdAt: db.invoices[i].createdAt };
+  } else {
+    inv.id = uid();
+    inv.createdAt = new Date().toISOString();
+    db.invoices.push(inv);
+    currentId = inv.id;
+    db.settings.nextNo = (db.settings.nextNo || 1) + 1;
+  }
+  persist();
+  renderHistory();
+  renderSettingsForm();
+  toast('Invoice saved ✓');
+}
+
+function loadIntoForm(inv, asNew = false){
+  currentId = asNew ? null : inv.id;
+  document.getElementById('invNo').value   = asNew ? nextInvoiceNo() : inv.no;
+  document.getElementById('invDate').value = asNew ? todayISO() : inv.date;
+  document.getElementById('poNo').value    = asNew ? nextPONo() : (inv.poNo || '');
+  document.getElementById('cName').value    = inv.customer?.name || '';
+  document.getElementById('cAddress').value = inv.customer?.address || '';
+  document.getElementById('cMobile').value  = inv.customer?.mobile || '';
+  document.getElementById('remarks').value  = inv.remarks || '';
+
+  document.getElementById('discountType').value = inv.discountType || 'flat';
+  document.getElementById('discountValue').value = inv.discountValue || 0;
+
+  document.getElementById('items').innerHTML = '';
+  (inv.items?.length ? inv.items : [{}]).forEach(it => addItemRow(it));
+
+  switchView('new');
+  recalc();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function newBlank(){
+  currentId = null;
+  document.getElementById('invNo').value   = nextInvoiceNo();
+  document.getElementById('invDate').value = todayISO();
+  document.getElementById('poNo').value    = nextPONo();
+  ['cName','cAddress','cMobile','remarks'].forEach(id => document.getElementById(id).value = '');
+  
+  document.getElementById('discountType').value = 'flat';
+  document.getElementById('discountValue').value = 0;
+  
+  document.getElementById('items').innerHTML = '';
+  addItemRow();
+  recalc();
+}
+
+/* =========================================================
+   RENDER: HISTORY
+   ========================================================= */
+function renderHistory(){
+  const body = document.getElementById('historyBody');
+  document.getElementById('histCount').textContent = db.invoices.length;
+
+  if (!db.invoices.length){
+    body.innerHTML = `<tr><td colspan="6" class="empty">No invoices saved yet.</td></tr>`;
+    return;
+  }
+  body.innerHTML = db.invoices.slice().reverse().map(inv => `
+    <tr>
+      <td><strong>${esc(inv.no)}</strong></td>
+      <td>${esc(inv.date)}</td>
+      <td><code>${esc(inv.poNo) || '—'}</code></td>
+      <td>${esc(inv.customer?.name) || '—'}</td>
+      <td class="num">৳${money(inv.total)}</td>
+      <td>
+        <div class="actions">
+          <button data-act="view" data-id="${inv.id}">Open</button>
+          <button data-act="print" data-id="${inv.id}">Print</button>
+          <button data-act="dup" data-id="${inv.id}">Duplicate</button>
+          <button data-act="del" data-id="${inv.id}">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+/* =========================================================
+   RENDER: PRODUCTS
+   ========================================================= */
+function renderProducts(){
+  const body = document.getElementById('productsBody');
+  const q = (document.getElementById('prodSearch').value || '').trim().toLowerCase();
+  document.getElementById('prodCount').textContent = db.products.length;
+
+  const list = q
+    ? db.products.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.code.toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q))
+    : db.products;
+
+  if (!list.length){
+    body.innerHTML = `<tr><td colspan="6" class="empty">${db.products.length ? 'No matches for that search.' : 'No products yet — add one above or use bulk import.'}</td></tr>`;
+  } else {
+    body.innerHTML = list.map(p => `
+      <tr>
+        <td><code>${esc(p.code)}</code></td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.category || '—')}</td>
+        <td>${esc(p.unit || 'pcs')}</td>
+        <td class="num">৳${money(p.price)}</td>
+        <td>
+          <div class="actions">
+            <button data-add="${esc(p.code)}" style="background:#e6f4ea;color:#137333">Add to invoice</button>
+            <button data-del="${esc(p.code)}">Delete</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+  refreshProductDatalist();
+}
+
+/* =========================================================
+   RENDER: SETTINGS (with logo previews)
+   ========================================================= */
+function renderLogoPreviews(){
+  const preview = (id, src) => {
+    const el = document.getElementById(id);
+    el.innerHTML = src
+      ? `<img src="${esc(src)}" alt="logo preview">`
+      : `<span class="ph">No logo</span>`;
+  };
+  preview('logo1Preview', db.settings.logo1);
+  preview('logo2Preview', db.settings.logo2);
+  preview('logoFooterPreview', db.settings.logoFooter);
+}
+
+function renderSettingsForm(){
+  const s = db.settings;
+  document.getElementById('sName').value    = s.name;
+  document.getElementById('sAddress').value = s.address;
+  document.getElementById('sEmail').value   = s.email;
+  document.getElementById('sPhone').value   = s.phone;
+  document.getElementById('sWeb').value     = s.web;
+  document.getElementById('sFrom').value    = s.from;
+  document.getElementById('sFromAddr').value= s.fromAddr;
+  document.getElementById('sSeller').value  = s.seller;
+  document.getElementById('sSellerPhone').value = s.sellerPhone;
+  document.getElementById('sTerms').value   = s.terms || '';
+  document.getElementById('sPrefix').value  = s.prefix;
+  document.getElementById('sNextNo').value  = s.nextNo;
+  document.getElementById('sPoPrefix').value= s.poPrefix;
+  renderLogoPreviews();
+}
+
+/* =========================================================
+   VIEW SWITCH
+   ========================================================= */
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.view === name));
+  if (name === 'history') renderHistory();
+  if (name === 'products') renderProducts();
+  if (name === 'settings') renderSettingsForm();
+}
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   LOGO HELPERS
+   ========================================================= */
+function handleLogoUpload(file, key, maxKB = 500){
+  if (!file) return;
+  if (file.size > maxKB * 1024){
+    toast(`Logo too large — keep it under ${maxKB} KB`);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    db.settings[key] = ev.target.result;
+    persist();
+    renderLogoPreviews();
+    recalc();
+    toast('Logo updated');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+function init(){
+  /* tabs */
+  document.getElementById('tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (btn) switchView(btn.dataset.view);
+  });
+
+  /* start blank */
+  newBlank();
+
+  /* live recalc */
+  document.querySelector('.form-panel').addEventListener('input', recalc);
+  document.querySelector('.form-panel').addEventListener('change', recalc);
+
+  /* product code lookup */
+  document.getElementById('items').addEventListener('input', e => {
+    const row = e.target.closest('.item-row');
+    if (!row) return;
+    if (e.target.classList.contains('i-code')){
+      const code = e.target.value.trim().toLowerCase();
+      const p = db.products.find(x => x.code.toLowerCase() === code);
+      if (p){
+        row.querySelector('.i-name').value = p.name;
+        const priceEl = row.querySelector('.i-price');
+        if (!Number(priceEl.value)) priceEl.value = p.price || 0;
+      }
+    }
+    recalc();
+  });
+
+  document.getElementById('btnAddItem').addEventListener('click', () => addItemRow());
+  document.getElementById('btnSave').addEventListener('click', saveInvoice);
+  document.getElementById('btnPrint').addEventListener('click', () => { recalc(); window.print(); });
+  document.getElementById('btnNew').addEventListener('click', newBlank);
+
+  /* history actions */
+  document.getElementById('historyBody').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const inv = db.invoices.find(x => x.id === btn.dataset.id);
+    if (!inv) return;
+
+    if (btn.dataset.act === 'view')  loadIntoForm(inv, false);
+    if (btn.dataset.act === 'dup')   loadIntoForm(inv, true);
+    if (btn.dataset.act === 'print'){
+      loadIntoForm(inv, false);
+      setTimeout(() => window.print(), 120);
+    }
+    if (btn.dataset.act === 'del'){
+      if (confirm('Delete invoice ' + inv.no + '?')){
+        db.invoices = db.invoices.filter(x => x.id !== inv.id);
+        if (currentId === inv.id) newBlank();
+        persist(); renderHistory(); toast('Invoice deleted');
+      }
+    }
+  });
+
+  /* products */
+  document.getElementById('prodSearch').addEventListener('input', renderProducts);
+
+  document.getElementById('btnAddProduct').addEventListener('click', () => {
+    const name = document.getElementById('npName').value.trim();
+    const cat  = document.getElementById('npCat').value.trim() || 'General';
+    const unit = document.getElementById('npUnit').value.trim() || 'pcs';
+    const price= Number(document.getElementById('npPrice').value) || 0;
+    if (!name){ toast('Product name is required'); return; }
+    const code = nextProductCode(cat, db.products);
+    db.products.push({ code, name, category: cat, unit, price });
+    persist(); renderProducts();
+    ['npName','npCat'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('npUnit').value = 'pcs';
+    document.getElementById('npPrice').value = 0;
+    toast('Added ' + code);
+  });
+
+  document.getElementById('btnBulk').addEventListener('click', () => {
+    const raw = document.getElementById('bulkText').value.trim();
+    if (!raw){ toast('Paste some rows first'); return; }
+    let added = 0;
+    raw.split(/\r?\n/).forEach(line => {
+      if (!line.trim()) return;
+      const sep = line.includes('|') ? '|' : (line.includes('\t') ? '\t' : ',');
+      const parts = line.split(sep).map(s => s.trim());
+      const [name, cat, price, unit] = parts;
+      if (!name) return;
+      const category = cat || 'General';
+      db.products.push({
+        code: nextProductCode(category, db.products),
+        name, category, unit: unit || 'pcs', price: Number(price) || 0
+      });
+      added++;
+    });
+    persist(); renderProducts();
+    document.getElementById('bulkText').value = '';
+    toast(added + ' product(s) imported');
+  });
+
+  document.getElementById('btnClearProducts').addEventListener('click', () => {
+    if (confirm('Remove all products? Saved invoices are not affected.')){
+      db.products = []; persist(); renderProducts(); toast('Products cleared');
+    }
+  });
+
+  document.getElementById('productsBody').addEventListener('click', e => {
+    const addBtn = e.target.closest('button[data-add]');
+    if (addBtn){
+      const p = db.products.find(x => x.code === addBtn.dataset.add);
+      if (!p) return;
+      if (!document.getElementById('view-new').classList.contains('active')) switchView('new');
+      addItemRow({ code: p.code, name: p.name, qty: 1, price: p.price || 0 });
+      toast(p.code + ' added to invoice');
+      return;
+    }
+    const delBtn = e.target.closest('button[data-del]');
+    if (delBtn){
+      if (!confirm('Delete product ' + delBtn.dataset.del + '?')) return;
+      db.products = db.products.filter(p => p.code !== delBtn.dataset.del);
+      persist(); renderProducts(); toast('Product deleted');
+    }
+  });
+
+  /* ---- logo uploads ---- */
+  document.getElementById('logo1File').addEventListener('change', e =>
+    handleLogoUpload(e.target.files[0], 'logo1'));
+  document.getElementById('logo2File').addEventListener('change', e =>
+    handleLogoUpload(e.target.files[0], 'logo2'));
+  
+  // Footer Logo Upload
+  document.getElementById('logoFooterFile').addEventListener('change', e =>
+    handleLogoUpload(e.target.files[0], 'logoFooter'));
+
+  document.getElementById('btnRemoveLogo1').addEventListener('click', () => {
+    db.settings.logo1 = ''; persist(); renderLogoPreviews(); recalc();
+    document.getElementById('logo1File').value = '';
+    toast('Left logo removed');
+  });
+  document.getElementById('btnRemoveLogo2').addEventListener('click', () => {
+    db.settings.logo2 = ''; persist(); renderLogoPreviews(); recalc();
+    document.getElementById('logo2File').value = '';
+    toast('Right logo removed');
+  });
+  
+  // Footer Logo Remove
+  document.getElementById('btnRemoveLogoFooter').addEventListener('click', () => {
+    db.settings.logoFooter = ''; persist(); renderLogoPreviews(); recalc();
+    document.getElementById('logoFooterFile').value = '';
+    toast('Footer logos removed');
+  });
+
+  /* settings save */
+  document.getElementById('btnSaveSettings').addEventListener('click', () => {
+    const s = db.settings;
+    s.name    = document.getElementById('sName').value.trim() || 'Your Company';
+    s.address = document.getElementById('sAddress').value.trim();
+    s.email   = document.getElementById('sEmail').value.trim();
+    s.phone   = document.getElementById('sPhone').value.trim();
+    s.web     = document.getElementById('sWeb').value.trim();
+    s.from    = document.getElementById('sFrom').value.trim();
+    s.fromAddr= document.getElementById('sFromAddr').value.trim();
+    s.seller  = document.getElementById('sSeller').value.trim();
+    s.sellerPhone = document.getElementById('sSellerPhone').value.trim();
+    s.terms   = document.getElementById('sTerms').value;
+    s.prefix  = document.getElementById('sPrefix').value.trim() || 'INV';
+    s.nextNo  = Math.max(1, Number(document.getElementById('sNextNo').value) || 1);
+    s.poPrefix= document.getElementById('sPoPrefix').value.trim() || 'DRIS/PO';
+    persist();
+    if (!currentId){
+      document.getElementById('invNo').value = nextInvoiceNo();
+      document.getElementById('poNo').value  = nextPONo();
+    }
+    recalc();
+    toast('Settings saved ✓');
+  });
+
+  document.getElementById('btnResetStock').addEventListener('click', () => {
+    if (!confirm('Replace the product list with the default 27-item robotics stock list? Invoices are kept.')) return;
+    db.products = buildSeedProducts();
+    persist(); renderProducts(); toast('Stock list restored');
+  });
+
+  /* backup */
+  document.getElementById('btnExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'daffodil-invoices-' + todayISO() + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById('btnImport').addEventListener('click', () =>
+    document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.settings || !Array.isArray(data.products) || !Array.isArray(data.invoices))
+          throw new Error('Invalid backup file');
+        if (!confirm('Replace all current data with this backup?')) return;
+        db = data; persist();
+        renderProducts(); renderHistory(); renderSettingsForm();
+        newBlank(); toast('Backup restored ✓');
+      } catch (err){ toast('Import failed: ' + err.message); }
+    };
+    reader.readAsText(file);
+  });
+
+  /* boot render */
+  refreshProductDatalist();
+  renderProducts();
+  renderHistory();
+  renderSettingsForm();
+  recalc();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
